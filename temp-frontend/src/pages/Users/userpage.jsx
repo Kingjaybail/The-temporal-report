@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import "./userPage.scss";
+import "./userpage.scss";
 import { fetchUserPage } from "../../util/router";
 import Navbar from "../../components/Navbar/navbar.jsx";
 
