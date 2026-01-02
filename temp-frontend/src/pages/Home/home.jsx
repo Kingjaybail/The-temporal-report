@@ -1,33 +1,18 @@
 import "./home.scss"
+import Navbar from "../../components/Navbar/navbar.jsx";
 
 export default function Home() {
+
   return (
     <div className="page">
-      <header className="header">
-        <div className="header-inner">
-          <div className="title">The Temporal Report</div>
-          <div className="subtitle">
-            A users guide to the evil and twisted
-          </div>
-        </div>
-      </header>
-
-      <nav className="top-nav">
-        <a href="#">Home</a>
-        <a href="#">Archives</a>
-        <a href="#">About</a>
-        <a href="#">Articles</a>
-      </nav>
-
+        <Navbar/>
       <div className="content">
         <aside className="sidebar">
           <section>
             <h3>Browse</h3>
             <ul>
-              <li><a href="#">Latest Entries</a></li>
-              <li><a href="#">By Date</a></li>
-              <li><a href="#">By Topic</a></li>
-              <li><a href="#">Full Archive</a></li>
+              <li><a href="/articles">Latest Entries</a></li>
+              <li><a href="/articles">Full Archive</a></li>
             </ul>
           </section>
 
@@ -36,7 +21,7 @@ export default function Home() {
             <ul>
               <li><a href="#">About This Site</a></li>
               <li><a href="#">Editorial Policy</a></li>
-              <li><a href="#">Contact</a></li>
+              <li><a href="/users">Find Users</a></li>
             </ul>
           </section>
         </aside>
@@ -47,13 +32,15 @@ export default function Home() {
               A user report system to declassify the classified
           </p>
           <p>
-            Our mission? RE-REDACT the Epstein files!
+            Dont assume all pages can be found by links
           </p>
+          <p>But the users can be try clicking Find Users to discover people</p>
         </main>
       </div>
 
       <footer className="footer">
-        The Temporal Report 2003–2005
+        The Temporal Report 2003–2005 <br></br>
+        Editors: note as of December 22nd 2025 we are no longer partnered with the Epstein Foundation of youths in congress
       </footer>
     </div>
   );

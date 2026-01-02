@@ -1,0 +1,98 @@
+.editor-form {
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.form-row label {
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #000080;
+}
+
+.form-row input,
+.form-row textarea {
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 13px;
+  padding: 6px;
+  border: 2px inset #d4d0c8;
+  background-color: #ffffff;
+}
+
+.form-row input[type="file"] {
+  padding: 3px;
+  background-color: #d4d0c8;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.form-actions button {
+  font-family: Tahoma, sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 14px;
+  background-color: #d4d0c8;
+  border: 2px outset #ffffff;
+  cursor: pointer;
+}
+
+.form-actions button:hover {
+  background-color: #b6babf;
+  border: 2px inset #808080;
+}
+
+
+.draft-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.draft-popup-inner {
+  background: #d4d0c8;
+  padding: 15px;
+  border: 2px groove #808080;
+  width: 320px;
+  font-size: 13px;
+}
+
+.draft-popup-inner h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #808080;
+  padding-bottom: 4px;
+}
+
+.draft-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.draft-popup-actions button {
+  font-family: Tahoma, sans-serif;
+  font-size: 13px;
+  padding: 4px 10px;
+  border: 2px outset #fff;
+  background: #d4d0c8;
+  cursor: pointer;
+}
+
+.draft-popup-actions button:hover {
+  border: 2px inset #808080;
+}
