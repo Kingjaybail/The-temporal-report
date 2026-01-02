@@ -1,10 +1,11 @@
-import { useState } from "react";
 import "./create.scss";
+import { useState } from "react";
 import { saveDraft, publishArticle, fetchLatestDraft } from "../../util/router";
+import { uploadImage } from "../../util/router";
 import Navbar from "../../components/Navbar/navbar.jsx"
+
 export default function Create() {
   const loggedInUser = localStorage.getItem("user");
-
   if (!loggedInUser) {
     window.location.href = "/login";
   }
@@ -24,6 +25,27 @@ export default function Create() {
       setError(err.message);
     }
   };
+
+
+    const handleImageUpload = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const { url } = await uploadImage(file);
+
+        setBody(prev =>
+          prev + `\n\n<img src="${url}" alt="" />\n\n`
+        );
+
+        e.target.value = "";
+      } catch {
+        alert("Image upload failed");
+      }
+    };
+
+
+
 
   const handlePublish = async () => {
     setError("");
@@ -93,6 +115,12 @@ export default function Create() {
               <label>Title</label>
               <input value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
+
+            <div className="form-row">
+              <label>Insert Image</label>
+              <input type="file" accept="image/*" onChange={handleImageUpload} />
+            </div>
+
 
             <div className="form-row">
               <label>Body</label>

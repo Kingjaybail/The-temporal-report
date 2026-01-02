@@ -79,12 +79,10 @@ export default function Articles() {
                     </>
                   )}
                 </div>
-                <div className="article-body">
-                  {article.body.split("\n").map((p, i) => (
-                    <p key={i}>{p}</p>
-                  ))}
-                </div>
-
+                <div
+                  className="article-body"
+                  dangerouslySetInnerHTML={{ __html: article.body }}
+                />
                 <hr className="article-divider" />
               </article>
             ))}

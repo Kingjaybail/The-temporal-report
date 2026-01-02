@@ -92,14 +92,21 @@ export async function fetchArticleById(id) {
   return res.json();
 }
 
-export async function updateArticle(id, title, body) {
+export async function updateArticle(id, title, body, author) {
   const res = await fetch(`${API_BASE}/articles/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, body })
+    body: JSON.stringify({ title, body, author }),
   });
 
-  if (!res.ok) throw new Error("Failed to update article");
+  if (res.status === 403) {
+    throw new Error("You are not authorized to edit this article");
+  }
+
+  if (!res.ok) {
+    throw new Error("Update failed");
+  }
+
   return res.json();
 }
 
@@ -127,5 +134,22 @@ export async function fetchUsers() {
 export async function fetchUserPage(username) {
   const res = await fetch(`${API_BASE}/users/${encodeURIComponent(username)}`);
   if (!res.ok) throw new Error("Failed to load user page");
+  return res.json();
+}
+
+
+export async function uploadImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE}/articles/upload-image`, {
+    method: "POST",
+    body: formData
+  });
+
+  if (!res.ok) {
+    throw new Error("Image upload failed");
+  }
+
   return res.json();
 }
