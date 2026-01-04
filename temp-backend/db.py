@@ -1,13 +1,18 @@
-import sqlite3
-from pathlib import Path
+import psycopg2
+import psycopg2.extras
+import os
 
-DB_PATH = Path("temporal.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable not set")
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return psycopg2.connect(
+        DATABASE_URL,
+        cursor_factory=psycopg2.extras.RealDictCursor
+    )
 
 
 def init_db():
@@ -17,7 +22,7 @@ def init_db():
     # USERS TABLE
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL
         )
@@ -26,24 +31,29 @@ def init_db():
     # ARTICLES TABLE
     cur.execute("""
         CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             title TEXT NOT NULL,
             body TEXT NOT NULL,
             author TEXT NOT NULL,
-            published INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            published BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW()
         )
     """)
 
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def get_user(username):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+    cur.execute(
+        "SELECT * FROM users WHERE username = %s",
+        (username,)
+    )
     user = cur.fetchone()
+    cur.close()
     conn.close()
     return user
 
@@ -52,10 +62,11 @@ def create_user(username, password):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO users (username, password) VALUES (?, ?)",
+        "INSERT INTO users (username, password) VALUES (%s, %s)",
         (username, password)
     )
     conn.commit()
+    cur.close()
     conn.close()
 
 
@@ -64,7 +75,10 @@ def save_draft(title, body, author):
     cur = conn.cursor()
 
     cur.execute(
-        "SELECT id FROM articles WHERE author = ? AND published = 0",
+        """
+        SELECT id FROM articles
+        WHERE author = %s AND published = FALSE
+        """,
         (author,)
     )
     existing = cur.fetchone()
@@ -73,22 +87,24 @@ def save_draft(title, body, author):
         cur.execute(
             """
             UPDATE articles
-            SET title = ?, body = ?, created_at = CURRENT_TIMESTAMP
-            WHERE id = ?
+            SET title = %s,
+                body = %s,
+                created_at = NOW()
+            WHERE id = %s
             """,
             (title, body, existing["id"])
         )
     else:
-        # Create new draft
         cur.execute(
             """
             INSERT INTO articles (title, body, author, published)
-            VALUES (?, ?, ?, 0)
+            VALUES (%s, %s, %s, FALSE)
             """,
             (title, body, author)
         )
 
     conn.commit()
+    cur.close()
     conn.close()
 
 
@@ -98,11 +114,12 @@ def publish_article(title, body, author):
     cur.execute(
         """
         INSERT INTO articles (title, body, author, published)
-        VALUES (?, ?, ?, 1)
+        VALUES (%s, %s, %s, TRUE)
         """,
         (title, body, author)
     )
     conn.commit()
+    cur.close()
     conn.close()
 
 
@@ -112,12 +129,19 @@ def get_all_articles(published_only=False):
 
     if published_only:
         cur.execute(
-            "SELECT * FROM articles WHERE published = 1 ORDER BY created_at DESC"
+            """
+            SELECT * FROM articles
+            WHERE published = TRUE
+            ORDER BY created_at DESC
+            """
         )
     else:
-        cur.execute("SELECT * FROM articles ORDER BY created_at DESC")
+        cur.execute(
+            "SELECT * FROM articles ORDER BY created_at DESC"
+        )
 
     rows = cur.fetchall()
+    cur.close()
     conn.close()
     return rows
 
@@ -128,13 +152,14 @@ def get_latest_draft(author):
     cur.execute(
         """
         SELECT * FROM articles
-        WHERE author = ? AND published = 0
+        WHERE author = %s AND published = FALSE
         ORDER BY created_at DESC
         LIMIT 1
         """,
         (author,)
     )
     row = cur.fetchone()
+    cur.close()
     conn.close()
     return row
 
@@ -146,14 +171,19 @@ def update_article(article_id, title, body, author):
     cur.execute(
         """
         UPDATE articles
-        SET title = ?, body = ?, created_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND author = ? AND published = 1
+        SET title = %s,
+            body = %s,
+            created_at = NOW()
+        WHERE id = %s
+          AND author = %s
+          AND published = TRUE
         """,
         (title, body, article_id, author)
     )
 
     updated = cur.rowcount
     conn.commit()
+    cur.close()
     conn.close()
 
     return updated > 0
@@ -163,10 +193,11 @@ def get_article_by_id(article_id):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT * FROM articles WHERE id = ?",
+        "SELECT * FROM articles WHERE id = %s",
         (article_id,)
     )
     row = cur.fetchone()
+    cur.close()
     conn.close()
     return row
 
@@ -178,13 +209,16 @@ def delete_article(article_id, author):
     cur.execute(
         """
         DELETE FROM articles
-        WHERE id = ? AND author = ? AND published = 1
+        WHERE id = %s
+          AND author = %s
+          AND published = TRUE
         """,
         (article_id, author)
     )
 
     deleted = cur.rowcount
     conn.commit()
+    cur.close()
     conn.close()
 
     return deleted > 0
@@ -194,9 +228,14 @@ def get_all_users():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT username FROM users ORDER BY username COLLATE NOCASE ASC"
+        """
+        SELECT username
+        FROM users
+        ORDER BY username COLLATE "C" ASC
+        """
     )
     rows = cur.fetchall()
+    cur.close()
     conn.close()
     return [row["username"] for row in rows]
 
@@ -207,11 +246,13 @@ def get_articles_by_author(author):
     cur.execute(
         """
         SELECT * FROM articles
-        WHERE author = ? AND published = 1
+        WHERE author = %s
+          AND published = TRUE
         ORDER BY created_at DESC
         """,
         (author,)
     )
     rows = cur.fetchall()
+    cur.close()
     conn.close()
     return rows
