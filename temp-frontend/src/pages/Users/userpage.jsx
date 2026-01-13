@@ -8,12 +8,40 @@ export default function UserPage() {
   const { username } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [aboutDraft, setAboutDraft] = useState("");
+  const loggedInUser = localStorage.getItem("user");
+
+  async function loadUser() {
+    try {
+      const result = await fetchUserPage(username);
+      setData(result);
+      setAboutDraft(result.about || "");
+    } catch {
+      setError("User not found");
+    }
+  }
 
   useEffect(() => {
-    fetchUserPage(username)
-      .then(setData)
-      .catch(() => setError("User not found"));
+    loadUser();
   }, [username]);
+
+  async function saveAbout() {
+    const res = await fetch(
+      `${import.meta.env.VITE_REACT_API_URL}/users/${username}/about`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ about: aboutDraft }),
+      }
+    );
+    if (res.ok) {
+      setData({ ...data, about: aboutDraft });
+      setEditing(false);
+    } else {
+      alert("Failed to update About Me");
+    }
+  }
 
   if (!data && !error) return null;
 
@@ -29,24 +57,53 @@ export default function UserPage() {
             <>
               <h2>Contributor: {data.username}</h2>
 
-              {data.articles.length === 0 && (
-                <p>No published articles.</p>
-              )}
+              {/* About Me Section */}
+              <section className="user-about">
+                <h3>About Me</h3>
+                {editing ? (
+                  <>
+                    <textarea
+                      value={aboutDraft}
+                      onChange={(e) => setAboutDraft(e.target.value)}
+                      rows={4}
+                      style={{ width: "100%" }}
+                    />
+                    <div style={{ marginTop: "8px" }}>
+                      <button onClick={saveAbout}>Save</button>{" "}
+                      <button onClick={() => setEditing(false)}>Cancel</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p>{data.about || "This user has not added an About Me yet."}</p>
+                    {loggedInUser === data.username && (
+                      <button
+                        style={{ marginTop: "8px" }}
+                        onClick={() => setEditing(true)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </>
+                )}
+              </section>
+
+              <hr />
+
+              {/* Articles */}
+              <h3>Articles</h3>
+              {data.articles.length === 0 && <p>No published articles.</p>}
 
               {data.articles.map((article) => (
                 <article key={article.id} className="news-article">
-                  <h3>{article.title}</h3>
-
+                  <h4>{article.title}</h4>
                   <div className="article-meta">
                     {new Date(article.created_at).toLocaleDateString()}
                   </div>
-
-                  <div className="article-body">
-                    {article.body.split("\n").map((p, i) => (
-                      <p key={i}>{p}</p>
-                    ))}
-                  </div>
-
+                  <div
+                    className="article-body"
+                    dangerouslySetInnerHTML={{ __html: article.body }}
+                  />
                   <hr />
                 </article>
               ))}
@@ -55,9 +112,7 @@ export default function UserPage() {
         </main>
       </div>
 
-      <footer className="footer">
-        Contributor Archive
-      </footer>
+      <footer className="footer">Contributor Archive</footer>
     </div>
   );
 }

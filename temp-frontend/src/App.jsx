@@ -6,7 +6,7 @@ import Articles from "./pages/View/articles.jsx";
 import Edit from "./pages/Create-Article/edit.jsx";
 import Users from "./pages/Users/users.jsx";
 import UserPage from "./pages/Users/userpage.jsx"
-
+import ArticlePage from "./pages/ArticlePage/articlepage.jsx";
 
 export default function App() {
   return (
@@ -16,6 +16,7 @@ export default function App() {
         <Route path="create" element={<Create/>}/>
         <Route path="login" element={<Login/>}/>
         <Route path="articles" element={<Articles/>}/>
+        <Route path="/articles/:id" element={<ArticlePage />} />
         <Route path="edit/:id" element={<Edit/>}/>
         <Route path="/users" element={<Users />} />
         <Route path="/users/:username" element={<UserPage />} />

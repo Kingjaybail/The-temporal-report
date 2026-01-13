@@ -24,7 +24,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            about TEXT DEFAULT ''
         )
     """)
 
@@ -36,6 +37,19 @@ def init_db():
             body TEXT NOT NULL,
             author TEXT NOT NULL,
             published BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id SERIAL PRIMARY KEY,
+            article_id INTEGER NOT NULL
+            REFERENCES articles(id) ON DELETE CASCADE,
+            author TEXT NOT NULL,
+            body TEXT NOT NULL,
+            parent_id INTEGER
+            REFERENCES comments(id) ON DELETE CASCADE,
             created_at TIMESTAMP DEFAULT NOW()
         )
     """)
@@ -123,27 +137,50 @@ def publish_article(title, body, author):
     conn.close()
 
 
-def get_all_articles(published_only=False):
+def get_articles_paginated(page=1,limit=5,search=None, sort="created_at", order="desc", published_only=True):
     conn = get_db()
     cur = conn.cursor()
 
-    if published_only:
-        cur.execute(
-            """
-            SELECT * FROM articles
-            WHERE published = TRUE
-            ORDER BY created_at DESC
-            """
-        )
-    else:
-        cur.execute(
-            "SELECT * FROM articles ORDER BY created_at DESC"
-        )
+    offset = (page - 1) * limit
+    where = "WHERE published = TRUE" if published_only else "WHERE TRUE"
+
+    params = []
+
+    if search:
+        where += " AND (title ILIKE %s OR body ILIKE %s)"
+        params.extend([f"%{search}%", f"%{search}%"])
+
+    order = "DESC" if order.lower() == "desc" else "ASC"
+    sort = sort if sort in ("created_at", "title", "author") else "created_at"
+
+    cur.execute(
+        f"""
+        SELECT COUNT(*) FROM articles {where}
+        """,
+        params
+    )
+    total = cur.fetchone()["count"]
+
+    cur.execute(
+        f"""
+        SELECT *
+        FROM articles
+        {where}
+        ORDER BY {sort} {order}
+        LIMIT %s OFFSET %s
+        """,
+        params + [limit, offset]
+    )
 
     rows = cur.fetchall()
     cur.close()
     conn.close()
-    return rows
+
+    return {
+        "items": rows,
+        "total": total
+    }
+
 
 
 def get_latest_draft(author):
@@ -256,3 +293,102 @@ def get_articles_by_author(author):
     cur.close()
     conn.close()
     return rows
+
+
+def create_comment(article_id, author, body, parent_id=None):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO comments (article_id, author, body, parent_id)
+        VALUES (%s, %s, %s, %s)
+        """,
+        (article_id, author, body, parent_id)
+    )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def get_comments_for_article(article_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT *
+        FROM comments
+        WHERE article_id = %s
+        ORDER BY created_at ASC
+        """,
+        (article_id,)
+    )
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows
+
+
+def delete_comment(comment_id, author):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        DELETE FROM comments
+        WHERE id = %s AND author = %s
+        """,
+        (comment_id, author)
+    )
+
+    deleted = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return deleted > 0
+
+
+def build_comment_tree(comments):
+    by_id = {c["id"]: dict(c, children=[]) for c in comments}
+    roots = []
+
+    for c in by_id.values():
+        if c["parent_id"]:
+            parent = by_id.get(c["parent_id"])
+            if parent:
+                parent["children"].append(c)
+        else:
+            roots.append(c)
+
+    return roots
+
+
+def get_user_with_about(username):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT username, about FROM users WHERE username = %s",
+        (username,)
+    )
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+    return user
+
+
+def update_user_about(username, about):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET about = %s WHERE username = %s",
+        (about, username)
+    )
+    conn.commit()
+    updated = cur.rowcount
+    cur.close()
+    conn.close()
+    return updated > 0

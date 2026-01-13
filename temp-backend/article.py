@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel
 from db import (
     save_draft,
     publish_article,
     get_latest_draft,
-    get_all_articles,
+    get_articles_paginated,
     update_article,
     get_article_by_id,
     delete_article
@@ -33,9 +33,24 @@ class DeleteArticleRequest(BaseModel):
 
 
 @router.get("/")
-def list_published_articles():
-    articles = get_all_articles(published_only=True)
-    return [dict(a) for a in articles]
+def list_published_articles(page: int = Query(1, ge=1), limit: int = Query(2, ge=1, le=100),
+                            search: str | None = None,sort: str = "created_at", order: str = "desc"):
+
+    result = get_articles_paginated(
+        page=page,
+        limit=limit,
+        search=search,
+        sort=sort,
+        order=order,
+        published_only=True
+    )
+
+    return {
+        "items": [dict(a) for a in result["items"]],
+        "total": result["total"],
+        "page": page,
+        "limit": limit
+    }
 
 
 @router.get("/{article_id}")

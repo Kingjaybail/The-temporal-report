@@ -35,8 +35,14 @@ export async function signupUser(username, password) {
   return res.json();
 }
 
-export async function fetchArticles() {
-  const res = await fetch(`${API_BASE}/articles`);
+export async function fetchArticles({page = 1, limit = 5, search = "", sort = "created_at", order = "desc"} = {}) {
+  const params = new URLSearchParams({page: String(page), limit: String(limit), sort, order});
+
+  if (search.trim()) {
+    params.append("search", search.trim());
+  }
+
+  const res = await fetch(`${API_BASE}/articles?${params.toString()}`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch articles");
@@ -44,6 +50,7 @@ export async function fetchArticles() {
 
   return res.json();
 }
+
 
 export async function saveDraft(title, body, author) {
   const res = await fetch(`${API_BASE}/articles/draft`, {
@@ -151,5 +158,33 @@ export async function uploadImage(file) {
     throw new Error("Image upload failed");
   }
 
+  return res.json();
+}
+
+export async function fetchComments(articleId) {
+  const res = await fetch(`${API_BASE}/comments/article/${articleId}`);
+  if (!res.ok) throw new Error("Failed to load comments");
+  return res.json();
+}
+
+export async function postComment(articleId, author, body, parentId = null) {
+  const res = await fetch(`${API_BASE}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ article_id: articleId, author, body, parent_id: parentId })
+  });
+
+  if (!res.ok) throw new Error("Failed to post comment");
+  return res.json();
+}
+
+export async function deleteComment(commentId, author) {
+  const res = await fetch(`${API_BASE}/comments/${commentId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ author })
+  });
+
+  if (!res.ok) throw new Error("Failed to delete comment");
   return res.json();
 }
