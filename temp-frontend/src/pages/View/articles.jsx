@@ -11,7 +11,8 @@ export default function Articles() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("created_at");
-  const limit = 2;
+  const [grandmaMode, setGrandmaMode] = useState(false);
+  const limit = grandmaMode ? 1 : 2;
 
   const loggedInUser = localStorage.getItem("user");
 
@@ -73,6 +74,17 @@ export default function Articles() {
 
         <main className="main-content">
           <h2>Filed Reports</h2>
+          <label className="switch">
+              <input
+                type="checkbox"
+                checked={grandmaMode}
+                onChange={() => {
+                  setPage(1);
+                  setGrandmaMode(!grandmaMode);
+                }}
+              />
+              <span className="slider">Grandma mode</span>
+          </label>
 
           <div className="article-controls">
             <input
@@ -146,9 +158,9 @@ export default function Articles() {
               </div>
 
               <div
-                className="article-body"
-                dangerouslySetInnerHTML={{ __html: article.body }}
-              />
+                  className={`article-body ${grandmaMode ? "grandma-text" : ""}`}
+                  dangerouslySetInnerHTML={{ __html: article.body }}
+                />
               <hr className="article-divider" />
             </article>
           ))}
