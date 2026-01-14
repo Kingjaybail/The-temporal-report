@@ -95,7 +95,9 @@ function Comment({ comment, onReply, onDelete, loggedInUser }) {
   return (
     <div className="comment">
       <div className="comment-meta">
-        <strong>{comment.author}</strong> ·{" "}
+        <a href={`/users/${comment.author}`} className="nav-user-link">
+                    <strong>{comment.author}</strong>
+                  </a>·{" "}
         {new Date(comment.created_at).toLocaleString()}
       </div>
 
