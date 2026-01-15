@@ -7,6 +7,7 @@ import Edit from "./pages/Create-Article/edit.jsx";
 import Users from "./pages/Users/users.jsx";
 import UserPage from "./pages/Users/userpage.jsx"
 import ArticlePage from "./pages/ArticlePage/articlepage.jsx";
+import Annuaki from "./pages/Annuaki/annuaki.jsx";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="edit/:id" element={<Edit/>}/>
         <Route path="/users" element={<Users />} />
         <Route path="/users/:username" element={<UserPage />} />
+        <Route path="/Annuaki" element={<Annuaki />} />
       </Routes>
     </Router>
   );

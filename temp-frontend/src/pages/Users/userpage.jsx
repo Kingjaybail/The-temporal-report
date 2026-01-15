@@ -20,7 +20,21 @@ export default function UserPage() {
     } catch {
       setError("User not found");
     }
-  }
+   }
+    function fireHintRequest() {
+        console.log("test");
+      fetch(`${import.meta.env.VITE_REACT_API_URL}/A_Gift`, {
+        headers: {
+          "A_gift_from_the_creator": "The mall contains much, but a talking dog? how bizarre"
+        }
+      }).catch(() => {});
+    }
+
+    useEffect(() => {
+      if (username === "The_Creator") {
+        fireHintRequest();
+      }
+    }, [username]);
 
   useEffect(() => {
     loadUser();
@@ -90,13 +104,12 @@ export default function UserPage() {
 
               <hr />
 
-              {/* Articles */}
               <h3>Articles</h3>
               {data.articles.length === 0 && <p>No published articles.</p>}
 
               {data.articles.map((article) => (
                 <article key={article.id} className="news-article">
-                  <h4>{article.title}</h4>
+                  <h2><a href={`/articles/${article.id}`}>{article.title}</a></h2>
                   <div className="article-meta">
                     {new Date(article.created_at).toLocaleDateString()}
                   </div>
@@ -111,8 +124,11 @@ export default function UserPage() {
           )}
         </main>
       </div>
-
-      <footer className="footer">Contributor Archive</footer>
+      {data.username == "The_Creator" ? (
+        <footer className="footer">Wonder whats going on in the network these days?</footer>
+      ): (
+        <footer className="footer">Contributor Archive</footer>
+      )}
     </div>
   );
 }
