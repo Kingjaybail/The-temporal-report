@@ -21,7 +21,7 @@ export default function App() {
         <Route path="edit/:id" element={<Edit/>}/>
         <Route path="/users" element={<Users />} />
         <Route path="/users/:username" element={<UserPage />} />
-        <Route path="/Annuaki" element={<Annuaki />} />
+        <Route path="/users/Xx_Scoob_Fan_xX/Annuaki" element={<Annuaki />} />
       </Routes>
     </Router>
   );
