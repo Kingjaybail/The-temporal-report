@@ -25,9 +25,18 @@ def init_db():
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
-            about TEXT DEFAULT ''
+            about TEXT DEFAULT '',
+            last_notification_check TIMESTAMP DEFAULT NOW()
         )
     """)
+
+    # Ensure migration for existing databases
+    try:
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_notification_check TIMESTAMP DEFAULT NOW()")
+        conn.commit()
+    except Exception as e:
+        print(f"Migration warning: {e}")
+        conn.rollback()
 
     # ARTICLES TABLE
     cur.execute("""
@@ -392,3 +401,50 @@ def update_user_about(username, about):
     cur.close()
     conn.close()
     return updated > 0
+
+
+def get_unread_comments_for_user(username):
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Get the user's last check time
+    cur.execute("SELECT last_notification_check FROM users WHERE username = %s", (username,))
+    user = cur.fetchone()
+    if not user:
+        return []
+    
+    last_check = user["last_notification_check"]
+    if not last_check:
+         # If null, assume everything is unread or nothing? 
+         # Let's default to no unread if null (bad state) or treat as 'beginning of time'.
+         # But the migration sets DEFAULT NOW(), so it should be fine.
+         pass
+    
+    # Find comments on articles authored by this user, created after last_check
+    # Exclude comments by the user themselves
+    cur.execute("""
+        SELECT c.*, a.title as article_title 
+        FROM comments c
+        JOIN articles a ON c.article_id = a.id
+        WHERE a.author = %s
+          AND c.author != %s
+          AND c.created_at > %s
+        ORDER BY c.created_at DESC
+    """, (username, username, last_check))
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows
+
+
+def mark_notifications_read(username):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET last_notification_check = NOW() WHERE username = %s",
+        (username,)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
