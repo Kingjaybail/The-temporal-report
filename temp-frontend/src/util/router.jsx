@@ -35,8 +35,8 @@ export async function signupUser(username, password) {
   return res.json();
 }
 
-export async function fetchArticles({page = 1, limit = 5, search = "", sort = "created_at", order = "desc"} = {}) {
-  const params = new URLSearchParams({page: String(page), limit: String(limit), sort, order});
+export async function fetchArticles({ page = 1, limit = 5, search = "", sort = "created_at", order = "desc" } = {}) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit), sort, order });
 
   if (search.trim()) {
     params.append("search", search.trim());
@@ -186,5 +186,19 @@ export async function deleteComment(commentId, author) {
   });
 
   if (!res.ok) throw new Error("Failed to delete comment");
+  return res.json();
+}
+
+export async function fetchNotifications(username) {
+  const res = await fetch(`${API_BASE}/users/${encodeURIComponent(username)}/notifications`);
+  if (!res.ok) throw new Error("Failed to load notifications");
+  return res.json();
+}
+
+export async function markNotificationsRead(username) {
+  const res = await fetch(`${API_BASE}/users/${encodeURIComponent(username)}/notifications/read`, {
+    method: "POST"
+  });
+  if (!res.ok) throw new Error("Failed to mark notifications as read");
   return res.json();
 }
