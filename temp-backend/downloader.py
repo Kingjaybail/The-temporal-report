@@ -1,4 +1,5 @@
 import os
+import random
 import re
 import shutil
 import uuid
@@ -34,6 +35,12 @@ if _COOKIES_SRC and Path(_COOKIES_SRC).exists():
         COOKIES_FILE = str(_writable_cookies)
     except OSError:
         COOKIES_FILE = _COOKIES_SRC  # fall back; may still hit RO error on close
+
+# Optional HTTP(S) proxy URL passed to yt-dlp via --proxy. Comma-separated
+# list is allowed; one is chosen at random per request for crude rotation.
+# Format: http://user:pass@host:port
+_PROXY_ENV = os.environ.get("YT_DLP_PROXY", "").strip()
+PROXIES: list[str] = [p.strip() for p in _PROXY_ENV.split(",") if p.strip()]
 
 
 # ── Pydantic models ──────────────────────────────────────────────
@@ -104,6 +111,7 @@ async def _run_ytdlp(
 ) -> tuple[int, str, str]:
     """Run yt-dlp in a thread so it works on Windows too."""
     cookie_args = ["--cookies", COOKIES_FILE] if COOKIES_FILE else []
+    proxy_args = ["--proxy", random.choice(PROXIES)] if PROXIES else []
     # Switching player clients dodges YouTube's bot wall on data-center IPs;
     # matching UA to the *caller's* browser reduces fingerprint mismatch
     # against the session whose cookies we're replaying.
@@ -116,7 +124,7 @@ async def _run_ytdlp(
         None,
         partial(
             subprocess.run,
-            ["yt-dlp", *cookie_args, *anti_bot_args, *args],
+            ["yt-dlp", *cookie_args, *proxy_args, *anti_bot_args, *args],
             capture_output=True,
             text=True,
         ),
