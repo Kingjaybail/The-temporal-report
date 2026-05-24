@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import uuid
 import subprocess
 import asyncio
@@ -19,7 +20,20 @@ DOWNLOAD_DIR.mkdir(exist_ok=True)
 # Path to a Netscape-format cookies.txt exported from a browser logged into
 # YouTube. Needed on cloud hosts because YouTube blocks data-center IPs with
 # "Sign in to confirm you're not a bot".
-COOKIES_FILE = os.environ.get("YT_DLP_COOKIES")
+_COOKIES_SRC = os.environ.get("YT_DLP_COOKIES")
+
+# yt-dlp tries to *write* the cookies file back on close to persist rotated
+# session tokens. Render's Secret Files mount at /etc/secrets is read-only,
+# so we copy the source to a writable location at startup and point yt-dlp
+# at the copy.
+COOKIES_FILE: Optional[str] = None
+if _COOKIES_SRC and Path(_COOKIES_SRC).exists():
+    _writable_cookies = DOWNLOAD_DIR / "cookies.txt"
+    try:
+        shutil.copyfile(_COOKIES_SRC, _writable_cookies)
+        COOKIES_FILE = str(_writable_cookies)
+    except OSError:
+        COOKIES_FILE = _COOKIES_SRC  # fall back; may still hit RO error on close
 
 
 # ── Pydantic models ──────────────────────────────────────────────
@@ -71,15 +85,28 @@ def _validate_url(url: str) -> None:
         raise HTTPException(status_code=400, detail="Invalid YouTube URL")
 
 
+_BRAVE_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/131.0.0.0 Safari/537.36"
+)
+
+
 async def _run_ytdlp(args: list[str]) -> tuple[int, str, str]:
     """Run yt-dlp in a thread so it works on Windows too."""
     cookie_args = ["--cookies", COOKIES_FILE] if COOKIES_FILE else []
+    # Switching player clients dodges YouTube's bot wall on data-center IPs;
+    # matching UA to where the cookies came from reduces fingerprint mismatch.
+    anti_bot_args = [
+        "--user-agent", _BRAVE_UA,
+        "--extractor-args", "youtube:player_client=default,android,web_safari",
+    ]
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(
         None,
         partial(
             subprocess.run,
-            ["yt-dlp", *cookie_args, *args],
+            ["yt-dlp", *cookie_args, *anti_bot_args, *args],
             capture_output=True,
             text=True,
         ),
