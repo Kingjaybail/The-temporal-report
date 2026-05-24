@@ -16,6 +16,11 @@ router = APIRouter(prefix="/youtube", tags=["youtube"])
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
 
+# Path to a Netscape-format cookies.txt exported from a browser logged into
+# YouTube. Needed on cloud hosts because YouTube blocks data-center IPs with
+# "Sign in to confirm you're not a bot".
+COOKIES_FILE = os.environ.get("YT_DLP_COOKIES")
+
 
 # ── Pydantic models ──────────────────────────────────────────────
 
@@ -68,12 +73,13 @@ def _validate_url(url: str) -> None:
 
 async def _run_ytdlp(args: list[str]) -> tuple[int, str, str]:
     """Run yt-dlp in a thread so it works on Windows too."""
+    cookie_args = ["--cookies", COOKIES_FILE] if COOKIES_FILE else []
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(
         None,
         partial(
             subprocess.run,
-            ["yt-dlp", *args],
+            ["yt-dlp", *cookie_args, *args],
             capture_output=True,
             text=True,
         ),
