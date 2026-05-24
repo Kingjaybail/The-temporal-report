@@ -8,6 +8,7 @@ import Users from "./pages/Users/users.jsx";
 import UserPage from "./pages/Users/userpage.jsx"
 import ArticlePage from "./pages/ArticlePage/articlepage.jsx";
 import Annuaki from "./pages/Annuaki/annuaki.jsx";
+import Downloader from "./pages/Downloader/downloader.jsx";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/users/:username" element={<UserPage />} />
         <Route path="/users/Xx_Scoob_Fan_xX/Annuaki" element={<Annuaki />} />
+        <Route path="Downloader" element={<Downloader/>}/>
       </Routes>
     </Router>
   );

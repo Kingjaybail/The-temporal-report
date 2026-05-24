@@ -10,7 +10,7 @@ from comments import router as comments_router
 from users import router as users_router
 from db import init_db
 from fastapi.staticfiles import StaticFiles
-
+from downloader import router as youtube_router
 app = FastAPI(title="app")
 
 app.add_middleware(
@@ -32,6 +32,7 @@ app.include_router(users_router)
 
 app.include_router(comments_router)
 
+app.include_router(youtube_router)
 
 @app.get("/")
 def root():

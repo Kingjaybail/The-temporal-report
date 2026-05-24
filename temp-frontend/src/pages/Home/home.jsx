@@ -35,6 +35,7 @@ export default function Home() {
               <li><a href="#">About This Site</a></li>
               <li><a href="#">Editorial Policy</a></li>
               <li><a href="/users">Find Users</a></li>
+              <li><a href="/Downloader">Downloader</a></li>
             </ul>
           </section>
         </aside>
