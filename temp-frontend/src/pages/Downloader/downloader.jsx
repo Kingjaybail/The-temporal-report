@@ -2,7 +2,12 @@ import React, { useState, useCallback } from "react";
 import Navbar from "../../components/Navbar/navbar.jsx";
 import "./downloader.scss";
 
-const API_BASE = import.meta.env.VITE_REACT_API_URL;
+// Downloader runs on a separately-hosted backend (local PC over an ngrok tunnel)
+// so it can hit YouTube from a residential IP. Falls back to the main API URL
+// for local dev where both backends are the same process.
+const API_BASE =
+  import.meta.env.VITE_DOWNLOADER_API_URL ||
+  import.meta.env.VITE_REACT_API_URL;
 
 /* ─── API helpers ─────────────────────────────────────────────── */
 
