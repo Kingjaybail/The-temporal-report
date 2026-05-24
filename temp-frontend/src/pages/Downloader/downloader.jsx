@@ -2,19 +2,16 @@ import React, { useState, useCallback } from "react";
 import Navbar from "../../components/Navbar/navbar.jsx";
 import "./downloader.scss";
 
-// Downloader runs on a separately-hosted backend (local PC over an ngrok tunnel)
-// so it can hit YouTube from a residential IP. Falls back to the main API URL
-// for local dev where both backends are the same process.
 const API_BASE =
   import.meta.env.VITE_DOWNLOADER_API_URL ||
   import.meta.env.VITE_REACT_API_URL;
 
-/* ─── API helpers ─────────────────────────────────────────────── */
+const NGROK_BYPASS = { "ngrok-skip-browser-warning": "true" };
 
 async function fetchVideoInfo(url) {
   const res = await fetch(`${API_BASE}/youtube/info`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...NGROK_BYPASS },
     body: JSON.stringify({
       url,
       user_agent: navigator.userAgent,
@@ -30,7 +27,7 @@ async function fetchVideoInfo(url) {
 async function requestDownload(url, formatId = null, audioOnly = false) {
   const res = await fetch(`${API_BASE}/youtube/download`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...NGROK_BYPASS },
     body: JSON.stringify({
       url,
       format_id: formatId,
@@ -47,7 +44,7 @@ async function requestDownload(url, formatId = null, audioOnly = false) {
 
 async function triggerBrowserDownload(filename) {
   const url = `${API_BASE}/youtube/file/${encodeURIComponent(filename)}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: NGROK_BYPASS });
 
   if (!res.ok) throw new Error("File download failed");
 
