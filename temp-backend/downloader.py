@@ -8,7 +8,7 @@ from functools import partial
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -62,6 +62,12 @@ class DownloadRequest(BaseModel):
     url: str
     format_id: Optional[str] = None
     audio_only: bool = False
+    user_agent: Optional[str] = None
+
+
+class InfoRequest(BaseModel):
+    url: str
+    user_agent: Optional[str] = None
 
 
 class DownloadStatus(BaseModel):
@@ -92,13 +98,17 @@ _BRAVE_UA = (
 )
 
 
-async def _run_ytdlp(args: list[str]) -> tuple[int, str, str]:
+async def _run_ytdlp(
+    args: list[str],
+    user_agent: Optional[str] = None,
+) -> tuple[int, str, str]:
     """Run yt-dlp in a thread so it works on Windows too."""
     cookie_args = ["--cookies", COOKIES_FILE] if COOKIES_FILE else []
     # Switching player clients dodges YouTube's bot wall on data-center IPs;
-    # matching UA to where the cookies came from reduces fingerprint mismatch.
+    # matching UA to the *caller's* browser reduces fingerprint mismatch
+    # against the session whose cookies we're replaying.
     anti_bot_args = [
-        "--user-agent", _BRAVE_UA,
+        "--user-agent", user_agent or _BRAVE_UA,
         "--extractor-args", "youtube:player_client=default,android,web_safari",
     ]
     loop = asyncio.get_running_loop()
@@ -135,18 +145,21 @@ MIME_MAP = {
 
 # ── Routes ────────────────────────────────────────────────────────
 
-@router.get("/info", response_model=VideoInfo)
-async def get_video_info(url: str = Query(..., description="YouTube video URL")):
-    _validate_url(url)
+@router.post("/info", response_model=VideoInfo)
+async def get_video_info(req: InfoRequest):
+    _validate_url(req.url)
 
     import json as _json
 
-    rc, stdout, stderr = await _run_ytdlp([
-        "--dump-json",
-        "--no-download",
-        "--no-warnings",
-        url,
-    ])
+    rc, stdout, stderr = await _run_ytdlp(
+        [
+            "--dump-json",
+            "--no-download",
+            "--no-warnings",
+            req.url,
+        ],
+        user_agent=req.user_agent,
+    )
 
     if rc != 0:
         raise HTTPException(status_code=502, detail=f"yt-dlp error: {stderr.strip()}")
@@ -225,7 +238,7 @@ async def start_download(req: DownloadRequest):
 
     args.append(req.url)
 
-    rc, _stdout, stderr = await _run_ytdlp(args)
+    rc, _stdout, stderr = await _run_ytdlp(args, user_agent=req.user_agent)
 
     if rc != 0:
         return DownloadStatus(status="error", error=stderr.strip())

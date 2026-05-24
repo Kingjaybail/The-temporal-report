@@ -7,8 +7,14 @@ const API_BASE = import.meta.env.VITE_REACT_API_URL;
 /* ─── API helpers ─────────────────────────────────────────────── */
 
 async function fetchVideoInfo(url) {
-  const params = new URLSearchParams({ url });
-  const res = await fetch(`${API_BASE}/youtube/info?${params.toString()}`);
+  const res = await fetch(`${API_BASE}/youtube/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url,
+      user_agent: navigator.userAgent,
+    }),
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to fetch video info");
@@ -20,7 +26,12 @@ async function requestDownload(url, formatId = null, audioOnly = false) {
   const res = await fetch(`${API_BASE}/youtube/download`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url, format_id: formatId, audio_only: audioOnly }),
+    body: JSON.stringify({
+      url,
+      format_id: formatId,
+      audio_only: audioOnly,
+      user_agent: navigator.userAgent,
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
